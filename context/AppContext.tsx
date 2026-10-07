@@ -136,6 +136,7 @@ interface AppContextType {
   // Daily Habits
   dailyQuestionsSolved: number;
   isDailyGoalClaimed: boolean;
+  checkAndRecordDailyHabit: (force?: boolean) => number;
 
   // Modals & Dialogs
   isSyllabusOpen: boolean;
@@ -152,6 +153,29 @@ interface AppContextType {
 }
 
 const AppContext = createContext<AppContextType | null>(null);
+
+function getTodayDateString(): string {
+  return new Date().toISOString().split('T')[0];
+}
+
+function calculateDayDifference(lastDateStr: string | null, todayStr: string): number {
+  if (!lastDateStr) return -1;
+  try {
+    const last = new Date(lastDateStr).getTime();
+    const today = new Date(todayStr).getTime();
+    return Math.floor((today - last) / (1000 * 60 * 60 * 24));
+  } catch {
+    return -1;
+  }
+}
+
+function getWeekOfYear(d: Date = new Date()): number {
+  const date = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+  const dayNum = date.getUTCDay() || 7;
+  date.setUTCDate(date.getUTCDate() + 4 - dayNum);
+  const yearStart = new Date(Date.UTC(date.getUTCFullYear(), 0, 1));
+  return Math.ceil((((date.getTime() - yearStart.getTime()) / 86400000) + 1) / 7);
+}
 
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const repository = repoInstance;
@@ -253,9 +277,73 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     };
   }, [repository]);
 
-  // Daily habit & initial sync check
+  const checkAndRecordDailyHabit = useCallback((force = false): number => {
+    const currentStats = repository.getUserStats();
+    const studentId = currentStats.studentId;
+
+    const currentWeek = getWeekOfYear();
+    const lastWeek = sessionStore.getLastActiveWeek(studentId);
+    let weeklyResetOccurred = false;
+    if (lastWeek !== null && lastWeek !== currentWeek) {
+      repository.resetWeeklyLeaderboard();
+      weeklyResetOccurred = true;
+    }
+    sessionStore.saveLastActiveWeek(currentWeek, studentId);
+
+    const today = getTodayDateString();
+    const lastDate = sessionStore.getLastActiveDate(studentId);
+    const dayDiff = calculateDayDifference(lastDate, today);
+    const isNewDay = force || lastDate !== today;
+    let bonus = 0;
+
+    if (isNewDay) {
+      let newStreak = currentStats.streakDays;
+      if (lastDate === null) {
+        newStreak = Math.max(1, currentStats.streakDays);
+      } else if (dayDiff === 1) {
+        newStreak = currentStats.streakDays + 1;
+      } else if (dayDiff === 0) {
+        newStreak = currentStats.streakDays;
+      } else if (dayDiff > 1) {
+        newStreak = 1; // Streak broken! Missed 1 or more calendar days
+      } else {
+        newStreak = Math.max(1, currentStats.streakDays);
+      }
+      sessionStore.saveLastActiveDate(today, studentId);
+      const explicitDay = lastDate === null && currentStats.daysActiveThisWeek <= 1 ? 1 : null;
+      bonus = repository.recordDailyHabitMilestone(explicitDay, newStreak);
+    } else if (dayDiff > 1 && currentStats.streakDays > 1) {
+      repository.setStreakDays(1);
+    }
+
+    if (weeklyResetOccurred || bonus > 0 || isNewDay) {
+      const stats = repository.getUserStats();
+      repository.syncProfileWithSupabase(
+        stats.studentId,
+        stats.grade,
+        stats.companionId,
+        weeklyResetOccurred
+      );
+      if (weeklyResetOccurred) {
+        repository.syncArenaScoreWithSupabase(stats.studentId, 0);
+      }
+    }
+    return bonus;
+  }, [repository]);
+
+  // Daily habit, auto-reconnect sync & initial sync check
   useEffect(() => {
     repository.checkAndExpireSubscriptionIfNeeded();
+    checkAndRecordDailyHabit();
+
+    const handleOnline = () => {
+      const studentId = sessionStore.getSavedStudentId();
+      if (studentId && studentId !== 'STU-58291') {
+        repository.syncOfflineMistakesToSupabase(studentId);
+      }
+    };
+    window.addEventListener('online', handleOnline);
+
     if (sessionStore.isLoggedIn()) {
       const studentId = sessionStore.getSavedStudentId();
       if (studentId && studentId !== 'STU-58291') {
@@ -266,7 +354,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         });
       }
     }
-  }, [repository]);
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+    };
+  }, [repository, checkAndRecordDailyHabit]);
 
   // Navigation handlers
   const selectTab = useCallback((tab: TabType) => {
@@ -599,10 +691,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setIsArenaBattle(false);
     setIsSpeedBlitz(false);
     repository.recordArenaRoundResult(arenaPointsEarned, qCount, accuracy);
+    checkAndRecordDailyHabit();
     const studentId = userStats.studentId;
     repository.syncArenaScoreWithSupabase(studentId, arenaPointsEarned);
     repository.syncProfileWithSupabase(studentId, userStats.grade, userStats.companionId);
-  }, [practiceQuestions.length, clearInProgressSession, repository, userStats]);
+  }, [practiceQuestions.length, clearInProgressSession, repository, userStats, checkAndRecordDailyHabit]);
 
   const completeActiveStage = useCallback((accuracy: number, xpEarned: number) => {
     clearInProgressSession();
@@ -637,9 +730,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       repository.recordDojoSessionCompleted(baseChapterId, correct);
     }
 
+    checkAndRecordDailyHabit();
     const studentId = userStats.studentId;
     repository.syncProfileWithSupabase(studentId, userStats.grade, userStats.companionId);
-  }, [clearInProgressSession, activeChapterId, practiceQuestions.length, isReplayStage, repository, activeStageNumber, userStats]);
+  }, [clearInProgressSession, activeChapterId, practiceQuestions.length, isReplayStage, repository, activeStageNumber, userStats, checkAndRecordDailyHabit]);
 
   const getActiveStageClaimedMasteryBonus = useCallback(() => {
     if (!activeChapterId) return 0;
@@ -980,6 +1074,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     onComboStreakUpdated,
     dailyQuestionsSolved,
     isDailyGoalClaimed,
+    checkAndRecordDailyHabit,
     isSyllabusOpen,
     openSyllabus,
     isNotificationsOpen,
@@ -1075,6 +1170,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     onComboStreakUpdated,
     dailyQuestionsSolved,
     isDailyGoalClaimed,
+    checkAndRecordDailyHabit,
     isSyllabusOpen,
     openSyllabus,
     isNotificationsOpen,

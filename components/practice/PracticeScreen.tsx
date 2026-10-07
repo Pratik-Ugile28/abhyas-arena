@@ -52,6 +52,62 @@ export interface PracticeScreenProps extends PracticeSessionConfig {
   onComboReached?: (combo: number) => void;
 }
 
+function playCorrectFeedback() {
+  if (typeof window !== 'undefined') {
+    try {
+      const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+      if (AudioCtx) {
+        const ctx = new AudioCtx();
+        const now = ctx.currentTime;
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(587.33, now);
+        osc.frequency.setValueAtTime(880, now + 0.08);
+        gain.gain.setValueAtTime(0.12, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(now);
+        osc.stop(now + 0.3);
+      }
+    } catch {}
+    try {
+      if (navigator.vibrate) {
+        navigator.vibrate(30);
+      }
+    } catch {}
+  }
+}
+
+function playWrongFeedback() {
+  if (typeof window !== 'undefined') {
+    try {
+      const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+      if (AudioCtx) {
+        const ctx = new AudioCtx();
+        const now = ctx.currentTime;
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(160, now);
+        osc.frequency.exponentialRampToValueAtTime(90, now + 0.18);
+        gain.gain.setValueAtTime(0.12, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(now);
+        osc.stop(now + 0.2);
+      }
+    } catch {}
+    try {
+      if (navigator.vibrate) {
+        navigator.vibrate([40, 30, 40]);
+      }
+    } catch {}
+  }
+}
+
 export const PracticeScreen: React.FC<PracticeScreenProps> = ({
   questions,
   questTitle = 'Practice Session',
@@ -152,6 +208,26 @@ export const PracticeScreen: React.FC<PracticeScreenProps> = ({
     }
   };
 
+  // Intercept hardware/browser back button during quiz to pause & show Exit confirmation dialog
+  useEffect(() => {
+    if (sessionCompleted) return;
+
+    if (typeof window !== 'undefined') {
+      window.history.pushState({ inPractice: true }, '');
+
+      const handlePopState = () => {
+        pauseTimer();
+        setShowExitConfirmation(true);
+        window.history.pushState({ inPractice: true }, '');
+      };
+
+      window.addEventListener('popstate', handlePopState);
+      return () => {
+        window.removeEventListener('popstate', handlePopState);
+      };
+    }
+  }, [sessionCompleted]);
+
   const handleSelectOption = (optKey: string) => {
     if (isAnswered) return;
 
@@ -165,6 +241,7 @@ export const PracticeScreen: React.FC<PracticeScreenProps> = ({
     const currentElapsed = Math.max(1, elapsedTime);
 
     if (correct) {
+      playCorrectFeedback();
       setCorrectCount((prev) => prev + 1);
       const isFast = currentElapsed < 4;
       if (isFast && onFastAnswer) {
@@ -205,6 +282,7 @@ export const PracticeScreen: React.FC<PracticeScreenProps> = ({
         setTotalXpEarned((prev) => prev + awarded);
       }
     } else {
+      playWrongFeedback();
       setCombo(0);
       setLastAwardedXp(0);
       setLastWasHintUsed(false);
