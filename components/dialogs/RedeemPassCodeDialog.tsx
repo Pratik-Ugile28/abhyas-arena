@@ -152,23 +152,33 @@ export const RedeemPassCodeDialog: React.FC<RedeemPassCodeDialogProps> = ({
           </button>
 
           {onSyncStatus && (
-            <button
-              onClick={handleSync}
-              disabled={isSyncing}
-              className="w-full py-2.5 rounded-[12px] bg-transparent border border-[#F5B94C]/70 text-[#F5B94C] font-bold text-[12px] flex items-center justify-center gap-2 hover:bg-[#F5B94C]/10 transition-colors"
-            >
-              {isSyncing ? (
-                <>
-                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                  <span>Syncing...</span>
-                </>
-              ) : (
-                <>
-                  <RefreshCw className="w-3.5 h-3.5" />
-                  <span>Sync Account Status ⟳</span>
-                </>
-              )}
-            </button>
+            <div className="w-full rounded-[12px] bg-[#0F172A] border border-[#334155] p-3 space-y-2 text-left">
+              <div>
+                <span className="text-[10px] font-extrabold text-[#F5B94C] tracking-wider uppercase">
+                  ACCOUNT SYNC
+                </span>
+                <p className="text-[12px] font-medium text-[#F1F5F9] mt-0.5">
+                  Student: {studentName || 'Scholar'} {parentPhone ? `(${parentPhone})` : ''}
+                </p>
+              </div>
+              <button
+                onClick={handleSync}
+                disabled={isSyncing}
+                className="w-full py-2.5 rounded-[10px] bg-transparent border border-[#F5B94C]/70 text-[#F5B94C] font-bold text-[12px] flex items-center justify-center gap-2 hover:bg-[#F5B94C]/10 transition-colors"
+              >
+                {isSyncing ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    <span>Syncing...</span>
+                  </>
+                ) : (
+                  <>
+                    <RefreshCw className="w-3.5 h-3.5" />
+                    <span>Sync Account Status ⟳</span>
+                  </>
+                )}
+              </button>
+            </div>
           )}
 
           <button
