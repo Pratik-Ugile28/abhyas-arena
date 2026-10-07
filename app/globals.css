@@ -1,0 +1,126 @@
+@import "tailwindcss";
+
+:root {
+  --surface-dark: #0F172A;
+  --surface-container-lowest: #0B1220;
+  --surface-container: #172236;
+  --surface-container-high: #22304A;
+  --surface-container-highest: #334155;
+  --text-primary: #F1F5F9;
+  --text-secondary: #A8B4C4;
+  --outline-color: #334155;
+  --outline-tertiary: #718096;
+  --cyan-primary: #22C7E6;
+  --cyan-on-primary: #062A35;
+  --cyan-primary-fixed: #8DE7F4;
+  --gold-secondary: #F5B94C;
+  --gold-container: #D99B2B;
+  --gold-on-secondary: #3A2605;
+  --gold-secondary-fixed: #FFE0A3;
+  --success-green: #39C88A;
+  --success-on-primary: #062C1E;
+  --error-red: #F07167;
+  --error-container: #8F3D3B;
+  --error-on-primary: #3B1010;
+}
+
+@theme {
+  --color-surface-dark: #0F172A;
+  --color-surface-container-lowest: #0B1220;
+  --color-surface-container: #172236;
+  --color-surface-container-high: #22304A;
+  --color-surface-container-highest: #334155;
+  --color-text-primary: #F1F5F9;
+  --color-text-secondary: #A8B4C4;
+  --color-outline: #334155;
+  --color-outline-tertiary: #718096;
+  --color-cyan-primary: #22C7E6;
+  --color-cyan-on-primary: #062A35;
+  --color-cyan-primary-fixed: #8DE7F4;
+  --color-gold-secondary: #F5B94C;
+  --color-gold-container: #D99B2B;
+  --color-gold-on-secondary: #3A2605;
+  --color-gold-secondary-fixed: #FFE0A3;
+  --color-success-green: #39C88A;
+  --color-success-on-primary: #062C1E;
+  --color-error-red: #F07167;
+  --color-error-container: #8F3D3B;
+  --color-error-on-primary: #3B1010;
+}
+
+@font-face {
+  font-family: 'Plus Jakarta Sans';
+  src: url('/fonts/plus_jakarta_sans_regular.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Plus Jakarta Sans';
+  src: url('/fonts/plus_jakarta_sans_medium.ttf') format('truetype');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Plus Jakarta Sans';
+  src: url('/fonts/plus_jakarta_sans_semibold.ttf') format('truetype');
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Plus Jakarta Sans';
+  src: url('/fonts/plus_jakarta_sans_bold.ttf') format('truetype');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Plus Jakarta Sans';
+  src: url('/fonts/plus_jakarta_sans_extrabold.ttf') format('truetype');
+  font-weight: 800;
+  font-style: normal;
+  font-display: swap;
+}
+
+html, body {
+  background-color: #0B1220;
+  color: #F1F5F9;
+  font-family: 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Custom scrollbar styling for web */
+::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+::-webkit-scrollbar-track {
+  background: #0B1220;
+}
+::-webkit-scrollbar-thumb {
+  background: #22304A;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #334155;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
